@@ -13,4 +13,7 @@ def check_reminders():
 
 # Schedule the reminder checks every minute
 scheduler.add_job(check_reminders, 'interval', minutes=1)
-scheduler.start()
+def start_scheduler():
+    # Ensure this function is called only once
+    if not scheduler.running:
+        scheduler.start()
