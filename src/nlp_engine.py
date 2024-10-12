@@ -15,7 +15,7 @@ def parse_task(input_text):
     recurrence = None  
 
     priority_keywords = {
-        "high": ["high priority", "urgent", "asap", "immediately"],
+        "high": ["high priority", "urgent", "asap", "immediately", "important"],
         "low": ["low priority", "whenever", "no rush"]
     }
 
@@ -48,7 +48,7 @@ def parse_task(input_text):
             
             task_name = input_text.replace(ent.text, '').strip()
 
-            
+
     if recurrence and due_date is None:
         # Set the due date for recurring tasks based on current time
         if recurrence == 'daily':
