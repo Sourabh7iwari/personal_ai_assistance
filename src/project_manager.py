@@ -3,25 +3,28 @@ from flask import jsonify
 
 
 # new project addition
-def check_duplicate_project(title):
+def project_exists(title=None, project_id=None):
     conn = connect_db()
     cursor = conn.cursor()
 
-    # lower title of both to  avoid case sensitivity, hehe!
-    normalized_title = title.strip().lower()
-
-    cursor.execute("SELECT * FROM projects WHERE LOWER(title) = %s", (normalized_title,))
-    existing_project = cursor.fetchone()
+    if title:
+        # Normalize the title (lowercase, strip whitespace) for consistent comparison
+        normalized_title = title.strip().lower()
+        cursor.execute("SELECT * FROM projects WHERE LOWER(title) = %s", (normalized_title,))
+    elif project_id:
+        cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
+    
+    project = cursor.fetchone()
 
     cursor.close()
     conn.close()
 
-    return existing_project is not None
+    return project is not None  # Returns True if the project exists by title or ID
 
 
 def add_project(title, requirements):
     # Check for duplicate project, if i get same idea again and i forgot that this  project already going, i'm dumb otherwise i wouldn't have needed you (this AI assistance )
-    if check_duplicate_project(title):
+    if project_exists(title):
         return jsonify({'message': f'Project "{title}" already exists.'}), 400
 
     conn = connect_db()
@@ -137,6 +140,66 @@ def list_projects():
     except Exception as e:
         print(f"Error occurred: {e}")
         return jsonify({'error': 'Failed to retrieve projects.'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# project deletion section by checking if all steps completed or not
+def check_project_completion(project_id):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    # Check if all steps in the project are marked as completed
+    cursor.execute("SELECT COUNT(*) FROM steps WHERE project_id = %s AND completed = FALSE", (project_id,))
+    incomplete_steps_count = cursor.fetchone()[0]
+
+    cursor.close()
+    conn.close()
+
+    return incomplete_steps_count == 0  # Returns True if all steps are completed
+
+
+def project_exists(project_id):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
+    project = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return project is not None  # Returns True if the project exists
+
+
+def delete_project(project_id, force=False):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    try:
+        # Check if the project exists
+        if not project_exists(project_id):
+            return jsonify({'error': f'Project with ID {project_id} not found!'}), 404
+
+        # Check if the project has incomplete steps (if force is not used)
+        if not check_project_completion(project_id) and not force:
+            return jsonify({
+                'message': 'Project has incomplete steps. Use force flag to delete anyway.'
+            }), 400
+
+        # Delete all steps related to the project
+        cursor.execute("DELETE FROM steps WHERE project_id = %s", (project_id,))
+        
+        # Delete the project itself
+        cursor.execute("DELETE FROM projects WHERE id = %s", (project_id,))
+        conn.commit()
+
+        return jsonify({'message': f'Project with ID {project_id} deleted successfully!'})
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error occurred: {e}")
+        return jsonify({'error': 'Failed to delete project.'}), 500
     finally:
         cursor.close()
         conn.close()

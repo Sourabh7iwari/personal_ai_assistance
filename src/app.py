@@ -3,7 +3,7 @@ from src.task_manager import add_task, fetch_tasks, remove_task, mark_task_done
 from src.nlp_engine import parse_task
 from src.reminder_scheduler import start_scheduler
 from datetime import timedelta
-from project_manager import add_project, add_step, complete_step, get_project_details, list_projects
+from project_manager import add_project, add_step, complete_step, get_project_details, list_projects, delete_project
 
 
 app = Flask(__name__)
@@ -67,21 +67,26 @@ def add_step_route():
     step_description = data['step_description']
     return add_step(project_id, step_description)
 
-# Route to mark a step as complete
+
 @app.route('/complete_step/<int:step_id>', methods=['POST'])
 def complete_step_route(step_id):
     return complete_step(step_id)
 
-# Route to get details of a project along with steps and progress
+
 @app.route('/get_project/<int:project_id>', methods=['GET'])
 def get_project_route(project_id):
     return get_project_details(project_id)
 
-# Route to list all projects
+
 @app.route('/list_projects', methods=['GET'])
 def list_projects_route():
     return list_projects()
 
+@app.route('/delete_project/<int:project_id>', methods=['DELETE'])
+def delete_project_route(project_id):
+    # Check for the force flag in the request (optional, defaults to False)
+    force = request.args.get('force', 'false').lower() == 'true'
+    return delete_project(project_id, force)
 
 
 if __name__ == '__main__':
