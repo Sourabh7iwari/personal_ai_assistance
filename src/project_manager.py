@@ -6,14 +6,16 @@ from flask import jsonify
 def project_exists(title=None, project_id=None):
     conn = connect_db()
     cursor = conn.cursor()
-
+    print("got title")
     if title:
         # Normalize the title (lowercase, strip whitespace) for consistent comparison
         normalized_title = title.strip().lower()
         cursor.execute("SELECT * FROM projects WHERE LOWER(title) = %s", (normalized_title,))
     elif project_id:
         cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
-    
+    else:
+        return False  # If neither title nor project_id is provided, return False.
+
     project = cursor.fetchone()
 
     cursor.close()
@@ -23,7 +25,7 @@ def project_exists(title=None, project_id=None):
 
 
 def add_project(title, requirements):
-    # Check for duplicate project, if i get same idea again and i forgot that this  project already going, i'm dumb otherwise i wouldn't have needed you (this AI assistance )
+    # Check if the project already exists by title
     if project_exists(title):
         return jsonify({'message': f'Project "{title}" already exists.'}), 400
 
@@ -159,18 +161,6 @@ def check_project_completion(project_id):
     return incomplete_steps_count == 0  # Returns True if all steps are completed
 
 
-def project_exists(project_id):
-    conn = connect_db()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM projects WHERE id = %s", (project_id,))
-    project = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-
-    return project is not None  # Returns True if the project exists
-
 
 def delete_project(project_id, force=False):
     conn = connect_db()
@@ -178,7 +168,7 @@ def delete_project(project_id, force=False):
 
     try:
         # Check if the project exists
-        if not project_exists(project_id):
+        if not project_exists(project_id=project_id):
             return jsonify({'error': f'Project with ID {project_id} not found!'}), 404
 
         # Check if the project has incomplete steps (if force is not used)
