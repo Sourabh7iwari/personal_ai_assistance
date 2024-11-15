@@ -2,6 +2,25 @@ from database import connect_db
 from flask import jsonify
 
 
+def get_project_id_by_name(project_name):
+    """
+    Helper function to get project ID based on the project name.
+    """
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM projects WHERE LOWER(title) = %s", (project_name.lower(),))
+    project = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if project:
+        return project[0]  # Return project ID
+    return None
+
+
+
 # new project addition
 def project_exists(title=None, project_id=None):
     conn = connect_db()
@@ -26,7 +45,7 @@ def project_exists(title=None, project_id=None):
 
 def add_project(title, requirements):
     # Check if the project already exists by title
-    if project_exists(title):
+    if project_exists(title=title):
         return jsonify({'message': f'Project "{title}" already exists.'}), 400
 
     conn = connect_db()
