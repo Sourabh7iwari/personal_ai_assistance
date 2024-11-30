@@ -36,6 +36,7 @@ pytz==2024.2
 regex==2024.9.11
 requests==2.32.3
 rich==13.9.2
+sentencepiece>=0.1.99
 setuptools==75.1.0
 shellingham==1.5.4
 six==1.16.0
@@ -45,6 +46,8 @@ spacy-legacy==3.0.12
 spacy-loggers==1.0.5
 srsly==2.4.8
 thinc==8.3.2
+torch>=2.0.0
+transformers>=4.30.0
 tqdm==4.66.5
 typer==0.12.5
 typing_extensions==4.12.2

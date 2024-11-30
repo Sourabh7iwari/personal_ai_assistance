@@ -1,13 +1,13 @@
 from flask import Flask, request, jsonify
 from src.task_manager import add_task, fetch_tasks, remove_task, mark_task_done
-from src.nlp_engine import parse_task, parse_project_command
+from src.nlp_engine import NLPEngine
 from src.reminder_scheduler import start_scheduler
 from datetime import timedelta
 from project_manager import add_project, add_step, complete_step, get_project_details, list_projects, delete_project, get_project_id_by_name
 
 
 app = Flask(__name__)
-
+nlp_engine = NLPEngine()
 
 """Task and reminder API's, reminder are managed according to task type and time"""
 
@@ -28,7 +28,7 @@ def get_tasks_route():
 @app.route('/process_task', methods=['POST'])
 def process_task_route():
     input_text = request.json['input_text']
-    task_name, due_date, priority, recurrence = parse_task(input_text)
+    task_name, due_date, priority, recurrence = nlp_engine.parse_task(input_text)
 
     if task_name:
         reminder_time = None
@@ -55,17 +55,17 @@ def mark_task_done_route(task_id):
 @app.route('/process_project', methods=['POST'])
 def process_project_route():
     input_text = request.json['input_text']
-    command_type, project_name, requirements, step = parse_project_command(input_text)
+    command_type, project_name, requirements, step = nlp_engine.parse_project_command(input_text)
 
     # Ensure project_name is present for commands that need it
-    if not project_name and command_type != "create_project":
+    if not project_name and command_type != "create":
         return jsonify({'error': 'Project name is required for this command.'}), 400
 
-    if command_type == "create_project":
+    if command_type == "create":
         # Create a new project
         return add_project(project_name, requirements)
 
-    elif command_type == "add_step":
+    elif command_type == "add":
         # Get project ID by name
         project_id = get_project_id_by_name(project_name)
         if not project_id:
@@ -74,7 +74,7 @@ def process_project_route():
         # Add a step to the project
         return add_step(project_id, step)
 
-    elif command_type == "complete_project":
+    elif command_type == "complete":
         # Get project ID by name
         project_id = get_project_id_by_name(project_name)
         if not project_id:
@@ -84,7 +84,7 @@ def process_project_route():
         force = request.args.get('force', 'false').lower() == 'true'
         return delete_project(project_id, force)
 
-    elif command_type == "check_status":
+    elif command_type == "check":
         # Get project ID by name
         project_id = get_project_id_by_name(project_name)
         if not project_id:
